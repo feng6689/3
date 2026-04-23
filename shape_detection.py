@@ -13,17 +13,18 @@ def detect_shapes(image_path):
     
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, thresh = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    edges = cv2.Canny(blurred, 50, 150)
+    dilated = cv2.dilate(edges, None, iterations=2)
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area < 100:
+        if area < 50:
             continue
         
         perimeter = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+        approx = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
         vertices = len(approx)
         
         x, y, w, h = cv2.boundingRect(contour)
@@ -34,13 +35,9 @@ def detect_shapes(image_path):
             cv2.putText(img, "Triangle", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         
         elif vertices == 4:
-            aspect_ratio = float(w) / h
-            if 0.9 <= aspect_ratio <= 1.1:
-                continue
-            else:
-                rectangle_count += 1
-                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.putText(img, "Rectangle", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            rectangle_count += 1
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(img, "Rectangle", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         
         else:
             area_contour = area
@@ -49,7 +46,7 @@ def detect_shapes(image_path):
             circle_area = np.pi * radius * radius
             ratio = area_contour / circle_area
             
-            if 0.7 <= ratio <= 1.3:
+            if 0.6 <= ratio <= 1.4:
                 circle_count += 1
                 cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.putText(img, "Circle", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
